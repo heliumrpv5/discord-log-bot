@@ -1,3 +1,21 @@
+import os
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+# Preprost lažni strežnik za Render, da ne javi Timeout napake
+class SimpleHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is alive!")
+
+def run_server():
+    server = HTTPServer(('0.0.0.0', 10000), SimpleHandler)
+    server.serve_forever()
+
+# Zažene strežnik v ozadju, da Render "vidi" odprt port
+threading.Thread(target=run_server, daemon=True).start()
+
 import discord
 from discord.ext import commands
 
