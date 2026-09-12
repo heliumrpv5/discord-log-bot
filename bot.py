@@ -132,4 +132,9 @@ async def on_guild_channel_delete(channel):
     embed.description = f"Ime: **{channel.name}**"
     await send_log(channel.guild, embed)
 
+import os
+
+TOKEN = os.getenv("DISCORD_TOKEN")
+LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID", 0))
+
 bot.run(TOKEN)
