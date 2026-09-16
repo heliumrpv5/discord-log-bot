@@ -1,21 +1,5 @@
 import os
-import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
-
-# Preprost lažni strežnik za Render, da ne javi Timeout napake
-class SimpleHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Bot is alive!")
-
-def run_server():
-    server = HTTPServer(('0.0.0.0', 10000), SimpleHandler)
-    server.serve_forever()
-
-# Zažene strežnik v ozadju, da Render "vidi" odprt port
-threading.Thread(target=run_server, daemon=True).start()
-
+import time
 import discord
 from discord.ext import commands
 
@@ -31,7 +15,7 @@ intents.invites = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ⚠️ TUKAJ VPIŠI ID SVOJEGA LOG KANALA (zamenjaj te številke)
+# ⚠️ TUKAJ JE ID tvojega log kanala (lahko pustiš tukaj ali preko okoljske spremenljivke)
 LOG_CHANNEL_ID = 1533912804636102746  
 
 @bot.event
@@ -41,7 +25,9 @@ async def on_ready():
 
 # Pomožna funkcija za pošiljanje v log kanal
 async def send_log(guild, embed):
-    channel = guild.get_channel(LOG_CHANNEL_ID)
+    # Najprej preverimo spremenljivko iz okolja, če obstaja, sicer uporabimo privzeto številko
+    channel_id = int(os.getenv("LOG_CHANNEL_ID", LOG_CHANNEL_ID))
+    channel = guild.get_channel(channel_id)
     if channel:
         await channel.send(embed=embed)
 
@@ -150,9 +136,20 @@ async def on_guild_channel_delete(channel):
     embed.description = f"Ime: **{channel.name}**"
     await send_log(channel.guild, embed)
 
-import os
 
-TOKEN = os.getenv("DISCORD_TOKEN")
-LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID", 0))
+# --- ZAGON BOTA Z AVTOMATSKIM PONOVNIM ZAGONOM ---
+if __name__ == "__main__":
+    TOKEN = os.getenv("DISCORD_TOKEN")
+    
+    # Če token ni nastavljen preko okoljskih spremenljivk, ga lahko za silo vpišeš sem direktno v narekovaje:
+    if not TOKEN:
+       TOKEN = os.getenv("DISCORD_TOKEN")
 
-bot.run(TOKEN)
+    while True:
+        try:
+            print("Zagon log bota...")
+            bot.run(TOKEN)
+        except Exception as e:
+            print(f"Prišlo je do napake: {e}")
+            print("Ponovni zagon bota čez 5 sekund...")
+            time.sleep(5)
